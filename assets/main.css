@@ -1,0 +1,87 @@
+body, html {
+    height: 100%;
+    margin: 0;
+    font-family: sans-serif;
+}
+
+.center-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.center-container.column {
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.join-button {
+    padding: 1rem 2rem;
+    font-size: 1.25rem;
+    background-color: #0070f3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.join-button:hover {
+    background-color: #0059c1;
+}
+
+.join-input {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    width: 300px;
+}
+
+/* Spinner */
+.spinner {
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #0070f3;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Layout after joining */
+.main-layout {
+    display: flex;
+    height: 100vh;
+}
+
+.sidebar {
+    width: 200px;
+    background-color: #222;
+    color: white;
+    padding: 1rem;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar li {
+    margin-bottom: 1rem;
+    cursor: pointer;
+}
+
+.content-area {
+    flex: 1;
+    padding: 2rem;
+    background-color: #f0f0f0;
+}
+
+

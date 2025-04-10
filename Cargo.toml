@@ -1,0 +1,44 @@
+[package]
+name = "carbine"
+version = "0.1.0"
+authors = ["Justin Moeller <jumoell@protonmail.com>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.97"
+async-trait = "0.1.88"
+dioxus = { version = "0.6.0", features = ["fullstack"] }
+fedimint-api-client = "0.7.0-rc.0"
+fedimint-bip39 = "0.7.0-rc.0"
+fedimint-core = "0.7.0-rc.0"
+fedimint-client = "0.7.0-rc.0"
+fedimint-ln-client = "0.7.0-rc.0"
+fedimint-lnv2-client = "0.7.0-rc.0"
+fedimint-mint-client = "0.7.0-rc.0"
+fedimint-wallet-client = "0.7.0-rc.0"
+# TODO: Remove
+futures-timer = "3"
+flutter_rust_bridge = "=2.9.0"
+futures-util = "0.3.30"
+redb = "2.4.0"
+serde = { version = "1.0.219", features = ["derive"] }
+
+[features]
+default = ["desktop"]
+web = ["dioxus/web"]
+desktop = ["dioxus/desktop"]
+mobile = ["dioxus/mobile"]
+
+[profile]
+
+[profile.wasm-dev]
+inherits = "dev"
+opt-level = 1
+
+[profile.server-dev]
+inherits = "dev"
+
+[profile.android-dev]
+inherits = "dev"
