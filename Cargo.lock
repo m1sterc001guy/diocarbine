@@ -848,6 +848,7 @@ dependencies = [
  "fedimint-bip39",
  "fedimint-client",
  "fedimint-core",
+ "fedimint-derive-secret",
  "fedimint-ln-client",
  "fedimint-lnv2-client",
  "fedimint-mint-client",

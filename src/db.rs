@@ -2,12 +2,14 @@ use std::ops::Range;
 use std::path::Path;
 
 use async_trait::async_trait;
-use fedimint_core::db::{
+use fedimint_api_client::api::net::Connector;
+use fedimint_core::{config::FederationId, db::{
     IDatabaseTransactionOps, IDatabaseTransactionOpsCore, IRawDatabase, IRawDatabaseTransaction,
     PrefixStream,
-};
+}, encoding::{Decodable, Encodable}, impl_db_lookup, impl_db_record, invite_code::InviteCode};
 use futures_util::{stream, StreamExt};
 use redb::{Database, ReadableTable, TableDefinition, WriteTransaction};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub struct Redb(Database);
@@ -160,3 +162,35 @@ impl IRawDatabaseTransaction for RedbTransaction {
         Ok(())
     }
 }
+
+#[repr(u8)]
+#[derive(Clone, Debug)]
+pub(crate) enum DbKeyPrefix {
+    FederationConfig = 0x00,
+    ClientDatabase = 0x01,
+}
+
+#[derive(Debug, Clone, Encodable, Decodable, Eq, PartialEq, Hash, Ord, PartialOrd)]
+pub(crate) struct FederationConfigKey {
+    pub(crate) id: FederationId,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Encodable, Decodable, Serialize, Deserialize)]
+pub(crate) struct FederationConfig {
+    pub invite_code: InviteCode,
+    pub connector: Connector,
+}
+
+#[derive(Debug, Encodable, Decodable)]
+pub(crate) struct FederationConfigKeyPrefix;
+
+impl_db_record!(
+    key = FederationConfigKey,
+    value = FederationConfig,
+    db_prefix = DbKeyPrefix::FederationConfig,
+);
+
+impl_db_lookup!(
+    key = FederationConfigKey,
+    query_prefix = FederationConfigKeyPrefix
+);
