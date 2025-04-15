@@ -3,10 +3,16 @@ use std::path::Path;
 
 use async_trait::async_trait;
 use fedimint_api_client::api::net::Connector;
-use fedimint_core::{config::FederationId, db::{
-    IDatabaseTransactionOps, IDatabaseTransactionOpsCore, IRawDatabase, IRawDatabaseTransaction,
-    PrefixStream,
-}, encoding::{Decodable, Encodable}, impl_db_lookup, impl_db_record, invite_code::InviteCode};
+use fedimint_core::{
+    config::FederationId,
+    db::{
+        IDatabaseTransactionOps, IDatabaseTransactionOpsCore, IRawDatabase,
+        IRawDatabaseTransaction, PrefixStream,
+    },
+    encoding::{Decodable, Encodable},
+    impl_db_lookup, impl_db_record,
+    invite_code::InviteCode,
+};
 use futures_util::{stream, StreamExt};
 use redb::{Database, ReadableTable, TableDefinition, WriteTransaction};
 use serde::{Deserialize, Serialize};
@@ -179,6 +185,7 @@ pub(crate) struct FederationConfigKey {
 pub(crate) struct FederationConfig {
     pub invite_code: InviteCode,
     pub connector: Connector,
+    pub federation_name: String,
 }
 
 #[derive(Debug, Encodable, Decodable)]

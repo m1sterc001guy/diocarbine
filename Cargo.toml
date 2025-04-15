@@ -10,20 +10,22 @@ edition = "2021"
 anyhow = "1.0.97"
 async-trait = "0.1.88"
 dioxus = { version = "0.6.0", features = ["fullstack"] }
-fedimint-api-client = "0.7.0-rc.0"
-fedimint-bip39 = "0.7.0-rc.0"
-fedimint-core = "0.7.0-rc.0"
-fedimint-client = "0.7.0-rc.0"
-fedimint-derive-secret = "0.7.0-rc.0"
-fedimint-ln-client = "0.7.0-rc.0"
-fedimint-lnv2-client = "0.7.0-rc.0"
-fedimint-mint-client = "0.7.0-rc.0"
-fedimint-wallet-client = "0.7.0-rc.0"
+fedimint-api-client = "0.7.0"
+fedimint-bip39 = "0.7.0"
+fedimint-core = "0.7.0"
+fedimint-client = "0.7.0"
+fedimint-derive-secret = "0.7.0"
+fedimint-ln-client = "0.7.0"
+fedimint-lnv2-client = "0.7.0"
+fedimint-mint-client = "0.7.0"
+fedimint-wallet-client = "0.7.0"
 # TODO: Remove
 futures-timer = "3"
 flutter_rust_bridge = "=2.9.0"
 futures-util = "0.3.30"
 redb = "2.4.0"
+# TODO: Remove
+rand = "0.8"
 serde = { version = "1.0.219", features = ["derive"] }
 
 [features]
