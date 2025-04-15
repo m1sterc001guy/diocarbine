@@ -2,7 +2,7 @@ mod components;
 mod db;
 mod multimint;
 
-use std::{fmt::Display, sync::Arc};
+use std::fmt::Display;
 
 use components::{dashboard::Dashboard, join::JoinFederationForm};
 use dioxus::prelude::*;

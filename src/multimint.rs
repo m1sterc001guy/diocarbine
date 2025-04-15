@@ -1,4 +1,4 @@
-use std::{str::FromStr, sync::Arc};
+use std::str::FromStr;
 
 use anyhow::bail;
 use dioxus::logger::tracing::info;
@@ -6,7 +6,6 @@ use fedimint_api_client::api::net::Connector;
 use fedimint_bip39::{Bip39RootSecretStrategy, Mnemonic};
 use fedimint_client::{
     module_init::ClientModuleInitRegistry, secret::RootSecretStrategy, Client, ClientHandle,
-    ClientHandleArc,
 };
 use fedimint_core::{
     config::FederationId,
@@ -19,11 +18,12 @@ use fedimint_core::{
 use fedimint_derive_secret::{ChildId, DerivableSecret};
 use fedimint_ln_client::LightningClientInit;
 use fedimint_mint_client::MintClientInit;
+use fedimint_rocksdb::RocksDb;
 use fedimint_wallet_client::WalletClientInit;
 use futures_util::StreamExt;
 
 use crate::{
-    db::{FederationConfig, FederationConfigKey, FederationConfigKeyPrefix, Redb},
+    db::{FederationConfig, FederationConfigKey, FederationConfigKeyPrefix},
     FederationSelector,
 };
 
@@ -38,7 +38,7 @@ impl Multimint {
     pub async fn new() -> anyhow::Result<Self> {
         // TODO: Need android-safe path here
         info!("Opening database...");
-        let db: Database = Redb::open("fedimint.redb")?.into();
+        let db: Database = RocksDb::open("client.db").await?.into();
 
         info!("Generating or reading mnemonic...");
         let mnemonic =
@@ -121,8 +121,8 @@ impl Multimint {
         connector: Connector,
     ) -> anyhow::Result<ClientHandle> {
         info!("Getting client database...");
-        //let client_db = self.get_client_database(&federation_id);
-        let client_db: Database = Redb::open(format!("{federation_id}.redb").as_str())?.into();
+        let client_db = self.get_client_database(&federation_id);
+        //let client_db: Database = Redb::open(format!("{federation_id}.redb").as_str())?.into();
         info!("Deriving secret...");
         let secret = Self::derive_federation_secret(&self.mnemonic, &federation_id);
 
