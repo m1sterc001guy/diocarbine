@@ -2,10 +2,11 @@ mod db;
 mod components;
 mod multimint;
 
-use std::sync::Arc;
+use std::{fmt::Display, sync::Arc};
 
-use components::join::JoinFederationForm;
+use components::{dashboard::Dashboard, join::JoinFederationForm};
 use dioxus::prelude::*;
+use fedimint_core::config::FederationId;
 use multimint::Multimint;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
@@ -17,6 +18,7 @@ fn main() {
 #[component]
 pub fn app() -> Element {
     let sidebar_items = use_signal(|| Arc::new(Vec::new()));
+    let mut selected_federation = use_signal(|| None::<FederationSelector>);
 
     let load_items = {
         to_owned![sidebar_items];
@@ -46,9 +48,12 @@ pub fn app() -> Element {
                 h2 { class: "sidebar-title", "Federations" }
                 ul {
                     class: "sidebar-list",
-                    for item in sidebar_items().iter() {
+                    for item in sidebar_items().iter().cloned() {
                         li {
                             class: "sidebar-item",
+                            onclick: move |_| {
+                                selected_federation.set(Some(item.clone()));
+                            },
                             "{item}"
                         }
                     }
@@ -61,7 +66,20 @@ pub fn app() -> Element {
                 JoinFederationForm {
                     on_join_success: move |_| load_items()
                 }
+                
             }
         }
+    }
+}
+
+#[derive(Clone, Eq, PartialEq)]
+struct FederationSelector {
+    federation_name: String,
+    federation_id: FederationId,
+}
+
+impl Display for FederationSelector {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.federation_name)
     }
 }

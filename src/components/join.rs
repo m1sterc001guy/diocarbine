@@ -17,6 +17,7 @@ pub fn JoinFederationForm(on_join_success: EventHandler<()>) -> Element {
                     .expect("Could not join federation");
                 input_value.set(String::new());
                 on_join_success.call(());
+                print!("Successfully joined federation");
             });
         }
     };

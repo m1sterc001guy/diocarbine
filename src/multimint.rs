@@ -11,7 +11,7 @@ use fedimint_core::{
     db::{Database, IDatabaseTransactionOpsCoreTyped},
     encoding::Encodable,
     invite_code::InviteCode,
-    secp256k1::rand::thread_rng,
+    secp256k1::rand::thread_rng, Amount,
 };
 use fedimint_derive_secret::{ChildId, DerivableSecret};
 use fedimint_ln_client::LightningClientInit;
@@ -19,7 +19,7 @@ use fedimint_mint_client::MintClientInit;
 use fedimint_wallet_client::WalletClientInit;
 use futures_util::StreamExt;
 
-use crate::db::{FederationConfig, FederationConfigKey, FederationConfigKeyPrefix, Redb};
+use crate::{db::{FederationConfig, FederationConfigKey, FederationConfigKeyPrefix, Redb}, FederationSelector};
 
 #[derive(Clone)]
 pub(crate) struct Multimint {
@@ -64,20 +64,13 @@ impl Multimint {
             bail!("Already joined federation")
         }
 
-        let client = self
+        self
             .build_client(&federation_id, &invite_code, Connector::Tcp)
             .await?;
 
         let federation_config = FederationConfig {
             invite_code,
             connector: Connector::default(),
-            federation_name: client
-                .config()
-                .await
-                .global
-                .federation_name()
-                .expect("No federation name")
-                .to_owned(),
         };
 
         let mut dbtx = self.db.begin_transaction().await;
@@ -141,12 +134,32 @@ impl Multimint {
         federation_wallet_root_secret.child_key(ChildId(0))
     }
 
-    pub(crate) async fn federation_names(&self) -> Vec<String> {
+    pub(crate) async fn federation_names(&self) -> Vec<FederationSelector> {
         let mut dbtx = self.db.begin_transaction_nc().await;
-        dbtx.find_by_prefix(&FederationConfigKeyPrefix)
+        let ids = dbtx.find_by_prefix(&FederationConfigKeyPrefix)
             .await
-            .map(|(_, config)| config.federation_name)
             .collect::<Vec<_>>()
-            .await
+            .await;
+
+        let mut infos = Vec::new();
+        for (id, config) in ids {
+            let client = self.build_client(&id.id, &config.invite_code, config.connector).await.expect("Could not create client");
+            infos.push(FederationSelector { 
+                federation_name: client.config().await.global.federation_name().expect("No federation name").to_owned(), 
+                federation_id: id.id, 
+            });
+        }
+
+        infos
+    }
+
+    pub(crate) async fn balance(&self, federation_id: &FederationId) -> Amount {
+        let mut dbtx = self.db.begin_transaction_nc().await;
+        let config = dbtx.get_value(&FederationConfigKey {
+            id: *federation_id
+        }).await.expect("No available config");
+
+        let client = self.build_client(federation_id, &config.invite_code, config.connector).await.expect("Could not build client");
+        client.get_balance().await
     }
 }

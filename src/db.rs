@@ -185,7 +185,6 @@ pub(crate) struct FederationConfigKey {
 pub(crate) struct FederationConfig {
     pub invite_code: InviteCode,
     pub connector: Connector,
-    pub federation_name: String,
 }
 
 #[derive(Debug, Encodable, Decodable)]
