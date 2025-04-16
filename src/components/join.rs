@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::Multimint;
+use crate::load_multimint;
 
 #[component]
 pub fn JoinFederationForm(on_join_success: EventHandler<()>) -> Element {
@@ -10,13 +10,16 @@ pub fn JoinFederationForm(on_join_success: EventHandler<()>) -> Element {
         to_owned![input_value, on_join_success];
         move || {
             spawn(async move {
-                let multimint = Multimint::new().await.expect("Could not create multimint");
-                multimint
-                    .join_federation(input_value())
-                    .await
-                    .expect("Could not join federation");
-                input_value.set(String::new());
-                on_join_success.call(());
+                let multimint = load_multimint().await;
+                let mut mm = multimint.write().await;
+                if let Some(mm) = mm.as_mut() {
+                    mm.join_federation(input_value())
+                        .await
+                        .expect("Could not join federation");
+                    input_value.set(String::new());
+                    on_join_success.call(());
+                }
+                //let mut multimint = load_multimint().await;
             });
         }
     };

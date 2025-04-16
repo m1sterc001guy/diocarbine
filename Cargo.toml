@@ -23,6 +23,7 @@ fedimint-wallet-client = "0.7.0"
 flutter_rust_bridge = "=2.9.0"
 futures-util = "0.3.30"
 serde = { version = "1.0.219", features = ["derive"] }
+tokio = "1.44.2"
 
 [features]
 default = ["desktop"]

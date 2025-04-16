@@ -1,11 +1,11 @@
-use std::str::FromStr;
+use std::{collections::BTreeMap, str::FromStr, sync::Arc};
 
 use anyhow::bail;
 use dioxus::logger::tracing::info;
 use fedimint_api_client::api::net::Connector;
 use fedimint_bip39::{Bip39RootSecretStrategy, Mnemonic};
 use fedimint_client::{
-    module_init::ClientModuleInitRegistry, secret::RootSecretStrategy, Client, ClientHandle,
+    module_init::ClientModuleInitRegistry, secret::RootSecretStrategy, Client, ClientHandleArc,
 };
 use fedimint_core::{
     config::FederationId,
@@ -32,6 +32,7 @@ pub(crate) struct Multimint {
     db: Database,
     mnemonic: Mnemonic,
     modules: ClientModuleInitRegistry,
+    clients: BTreeMap<FederationId, ClientHandleArc>,
 }
 
 impl Multimint {
@@ -66,22 +67,21 @@ impl Multimint {
             db,
             mnemonic,
             modules,
+            clients: BTreeMap::new(),
         })
     }
 
     // TODO: Implement recovery
-    pub async fn join_federation(&self, invite_code: String) -> anyhow::Result<()> {
+    pub async fn join_federation(&mut self, invite_code: String) -> anyhow::Result<()> {
         let invite_code = InviteCode::from_str(&invite_code)?;
         let federation_id = invite_code.federation_id();
         if self.has_federation(&federation_id).await {
             bail!("Already joined federation")
         }
 
-        /*
         let client = self
             .build_client(&federation_id, &invite_code, Connector::Tcp)
             .await?;
-        */
 
         let client_config = Connector::default()
             .download_from_invite_code(&invite_code)
@@ -95,6 +95,9 @@ impl Multimint {
                 .expect("No federation name")
                 .to_owned(),
         };
+
+        self.clients.insert(federation_id, client);
+        info!("Added client to internal map");
 
         let mut dbtx = self.db.begin_transaction().await;
         dbtx.insert_new_entry(
@@ -119,10 +122,9 @@ impl Multimint {
         federation_id: &FederationId,
         invite_code: &InviteCode,
         connector: Connector,
-    ) -> anyhow::Result<ClientHandle> {
+    ) -> anyhow::Result<ClientHandleArc> {
         info!("Getting client database...");
         let client_db = self.get_client_database(&federation_id);
-        //let client_db: Database = Redb::open(format!("{federation_id}.redb").as_str())?.into();
         info!("Deriving secret...");
         let secret = Self::derive_federation_secret(&self.mnemonic, &federation_id);
 
@@ -143,6 +145,7 @@ impl Multimint {
                 .join(secret, client_config.clone(), invite_code.api_secret())
                 .await
         }
+        .map(Arc::new)
     }
 
     fn get_client_database(&self, federation_id: &FederationId) -> Database {
@@ -177,6 +180,12 @@ impl Multimint {
     }
 
     pub(crate) async fn balance(&self, federation_id: &FederationId) -> Amount {
+        let client = self
+            .clients
+            .get(federation_id)
+            .expect("No federation exists");
+        client.get_balance().await
+        /*
         let mut dbtx = self.db.begin_transaction_nc().await;
         info!("Getting config...");
         let config = dbtx
@@ -191,5 +200,6 @@ impl Multimint {
             .expect("Could not build client");
         info!("Retrieving balance...");
         client.get_balance().await
+        */
     }
 }

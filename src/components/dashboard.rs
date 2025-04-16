@@ -1,12 +1,18 @@
 use dioxus::prelude::*;
+use fedimint_core::Amount;
 
-use crate::{FederationSelector, Multimint};
+use crate::{load_multimint, FederationSelector};
 
 #[component]
 pub fn Dashboard(federation_info: FederationSelector) -> Element {
     let balance = use_resource(move || async move {
-        let multimint = Multimint::new().await.expect("Could not create Multimint");
-        multimint.balance(&federation_info.federation_id).await
+        let multimint = load_multimint().await;
+        let mm = multimint.read().await;
+        if let Some(mm) = mm.as_ref() {
+            mm.balance(&federation_info.federation_id).await
+        } else {
+            Amount::ZERO
+        }
     });
 
     rsx! {

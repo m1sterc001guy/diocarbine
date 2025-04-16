@@ -2,17 +2,31 @@ mod components;
 mod db;
 mod multimint;
 
-use std::fmt::Display;
+use std::{fmt::Display, sync::Arc};
 
 use components::{dashboard::Dashboard, join::JoinFederationForm};
 use dioxus::prelude::*;
 use fedimint_core::config::FederationId;
 use multimint::Multimint;
+use tokio::sync::RwLock;
 
 const MAIN_CSS: Asset = asset!("/assets/main.css");
 
+static MULTIMINT: GlobalSignal<Arc<RwLock<Option<Multimint>>>> =
+    Global::new(|| Arc::new(RwLock::new(None)));
+
 fn main() {
     dioxus::launch(app);
+}
+
+async fn load_multimint() -> Arc<RwLock<Option<Multimint>>> {
+    if MULTIMINT().read().await.is_none() {
+        *MULTIMINT.write() = Arc::new(RwLock::new(Some(
+            Multimint::new().await.expect("Could not create multimint"),
+        )));
+    }
+
+    MULTIMINT()
 }
 
 #[component]
@@ -26,9 +40,12 @@ pub fn app() -> Element {
             spawn({
                 to_owned![sidebar_items];
                 async move {
-                    let multimint = Multimint::new().await.expect("Could not create multimint");
-                    let names = multimint.federations().await;
-                    sidebar_items.set(names);
+                    let multimint = load_multimint().await;
+                    let mm = multimint.read().await;
+                    if let Some(mm) = mm.as_ref() {
+                        let names = mm.federations().await;
+                        sidebar_items.set(names);
+                    }
                 }
             });
         }
