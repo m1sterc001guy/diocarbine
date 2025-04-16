@@ -1,5 +1,6 @@
 use dioxus::{logger::tracing::info, prelude::*};
 use fedimint_core::Amount;
+use fedimint_lnv2_client::FinalReceiveOperationState;
 
 use crate::{load_multimint, FederationSelector};
 
@@ -19,8 +20,18 @@ pub fn Receive(federation_info: FederationSelector) -> Element {
                         let mm = multimint.read().await;
                         if let Some(mm) = mm.as_ref() {
                             match mm.receive(&federation_info.federation_id, amount).await {
-                                Ok((generated_invoice, _operation_id)) => {
+                                Ok((generated_invoice, operation_id)) => {
                                     invoice.set(Some(generated_invoice));
+
+                                    match mm
+                                        .await_receive(&federation_info.federation_id, operation_id)
+                                        .await
+                                    {
+                                        Ok(FinalReceiveOperationState::Claimed) => {
+                                            invoice.set(Some(format!("Received payment!")));
+                                        }
+                                        _ => {}
+                                    }
                                 }
                                 Err(e) => {
                                     info!("Receive returning error: {e}");
