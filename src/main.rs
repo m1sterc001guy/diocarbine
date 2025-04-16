@@ -63,6 +63,15 @@ pub fn app() -> Element {
             // Main content
             div {
                 class: "main",
+
+                button {
+                    class: "add-button",
+                    onclick: move |_| {
+                        selected_federation.set(None);
+                    },
+                    "+"
+                }
+
                 match selected_federation() {
                     Some(selector) => rsx! {
                         Dashboard { federation_info: selector }
