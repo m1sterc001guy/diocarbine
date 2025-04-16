@@ -1,7 +1,9 @@
 use dioxus::prelude::*;
 use fedimint_core::Amount;
 
-use crate::{components::receive::Receive, load_multimint, FederationSelector};
+use crate::{
+    components::receive::Receive, components::send::Send, load_multimint, FederationSelector,
+};
 
 #[component]
 pub fn Dashboard(federation_info: FederationSelector) -> Element {
@@ -16,6 +18,7 @@ pub fn Dashboard(federation_info: FederationSelector) -> Element {
     });
 
     let mut show_receive = use_signal(|| false);
+    let mut show_send = use_signal(|| false);
 
     rsx! {
         div {
@@ -34,9 +37,9 @@ pub fn Dashboard(federation_info: FederationSelector) -> Element {
                 class: "button-row",
                 button {
                     class: "send-button",
-                    onclick: |_| {
+                    onclick: move |_| {
                         println!("Send clicked");
-                        // open send flow...
+                        show_send.set(true);
                     },
                     "Send"
                 }
@@ -60,9 +63,24 @@ pub fn Dashboard(federation_info: FederationSelector) -> Element {
                             onclick: move|_| show_receive.set(false),
                             "x"
                          }
-                         Receive { federation_info }
+                         Receive { federation_info: federation_info.clone() }
                      }
                  }
+            }
+
+            if show_send() {
+                div {
+                    class: "modal-overlay",
+                    div {
+                        class: "modal-content",
+                        button {
+                            class: "modal-close-button",
+                            onclick: move |_| show_send.set(false),
+                            "x"
+                        }
+                        Send { federation_info }
+                    }
+                }
             }
         }
     }

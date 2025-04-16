@@ -23,6 +23,7 @@ use fedimint_mint_client::MintClientInit;
 use fedimint_rocksdb::RocksDb;
 use fedimint_wallet_client::WalletClientInit;
 use futures_util::StreamExt;
+use lightning_invoice::Bolt11Invoice;
 
 use crate::{
     db::{FederationConfig, FederationConfigKey, FederationConfigKeyPrefix},
@@ -230,5 +231,20 @@ impl Multimint {
             .await?;
 
         Ok((invoice.to_string(), operation_id))
+    }
+
+    pub(crate) async fn send(
+        &self,
+        federation_id: &FederationId,
+        invoice: String,
+    ) -> anyhow::Result<OperationId> {
+        let client = self
+            .clients
+            .get(federation_id)
+            .expect("No federation exists");
+        let lnv2 = client.get_first_module::<fedimint_lnv2_client::LightningClientModule>()?;
+        let invoice = Bolt11Invoice::from_str(&invoice)?;
+        let operation_id = lnv2.send(invoice, None, ().into()).await?;
+        Ok(operation_id)
     }
 }
