@@ -163,3 +163,17 @@
     background-color: #45a049;
 }
 
+.toast-error {
+    background-color: #f87171; /* red-400 */
+    color: white;
+    padding: 0.5rem 1rem;
+    margin-top: 1rem;
+    border-radius: 0.375rem;
+    animation: fadein 0.3s ease-out;
+}
+@keyframes fadein {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+

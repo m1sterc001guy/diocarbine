@@ -38,37 +38,49 @@ pub(crate) struct Multimint {
 impl Multimint {
     pub async fn new() -> anyhow::Result<Self> {
         // TODO: Need android-safe path here
-        info!("Opening database...");
         let db: Database = RocksDb::open("client.db").await?.into();
 
-        info!("Generating or reading mnemonic...");
         let mnemonic =
             if let Ok(entropy) = Client::load_decodable_client_secret::<Vec<u8>>(&db).await {
-                info!("Loaded mnemonic");
                 Mnemonic::from_entropy(&entropy)?
             } else {
                 let mnemonic = Bip39RootSecretStrategy::<12>::random(&mut thread_rng());
-                info!("Generated mnemonic");
 
                 Client::store_encodable_client_secret(&db, mnemonic.to_entropy()).await?;
-                info!("Saved mnemonic");
                 mnemonic
             };
 
-        info!("Creating modules...");
         let mut modules = ClientModuleInitRegistry::new();
         modules.attach(LightningClientInit::default());
         modules.attach(MintClientInit);
         modules.attach(WalletClientInit::default());
         modules.attach(fedimint_lnv2_client::LightningClientInit::default());
 
-        info!("Multimint created");
-        Ok(Self {
+        let mut multimint = Self {
             db,
             mnemonic,
             modules,
             clients: BTreeMap::new(),
-        })
+        };
+        multimint.load_clients().await?;
+        Ok(multimint)
+    }
+
+    async fn load_clients(&mut self) -> anyhow::Result<()> {
+        let mut dbtx = self.db.begin_transaction_nc().await;
+        let configs = dbtx
+            .find_by_prefix(&FederationConfigKeyPrefix)
+            .await
+            .collect::<BTreeMap<FederationConfigKey, FederationConfig>>()
+            .await;
+        for (id, config) in configs {
+            let client = self
+                .build_client(&id.id, &config.invite_code, config.connector)
+                .await?;
+            self.clients.insert(id.id, client);
+        }
+
+        Ok(())
     }
 
     // TODO: Implement recovery
