@@ -1,4 +1,5 @@
 use dioxus::{logger::tracing::info, prelude::*};
+use fedimint_lnv2_client::FinalSendOperationState;
 
 use crate::{load_multimint, FederationSelector};
 
@@ -27,8 +28,24 @@ pub fn Send(federation_info: FederationSelector) -> Element {
                     let mm = multimint.read().await;
                     if let Some(mm) = mm.as_ref() {
                         match mm.send(&federation_info.federation_id, invoice_value).await {
-                            Ok(_operation_id) => {
-                                result.set(Some(format!("Payment sent, wait for success")));
+                            Ok(operation_id) => {
+                                result.set(Some(format!("Payment sent...")));
+
+                                match mm
+                                    .await_send(&federation_info.federation_id, operation_id)
+                                    .await
+                                {
+                                    Ok(FinalSendOperationState::Success) => {
+                                        result.set(Some(format!("Invoice paid successfully")));
+                                    }
+                                    Ok(_) => {
+                                        result.set(Some(format!("Error when paying invoice")));
+                                    }
+                                    _ => {
+                                        result.set(Some(format!("Unspecified error")));
+                                    }
+                                }
+
                                 sending.set(false);
                             }
                             Err(e) => {

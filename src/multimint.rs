@@ -18,6 +18,7 @@ use fedimint_core::{
 };
 use fedimint_derive_secret::{ChildId, DerivableSecret};
 use fedimint_ln_client::LightningClientInit;
+use fedimint_lnv2_client::FinalSendOperationState;
 use fedimint_lnv2_common::Bolt11InvoiceDescription;
 use fedimint_mint_client::MintClientInit;
 use fedimint_rocksdb::RocksDb;
@@ -246,5 +247,20 @@ impl Multimint {
         let invoice = Bolt11Invoice::from_str(&invoice)?;
         let operation_id = lnv2.send(invoice, None, ().into()).await?;
         Ok(operation_id)
+    }
+
+    pub(crate) async fn await_send(
+        &self,
+        federation_id: &FederationId,
+        operation_id: OperationId,
+    ) -> anyhow::Result<FinalSendOperationState> {
+        let client = self
+            .clients
+            .get(federation_id)
+            .expect("No federation exists");
+        let lnv2 = client.get_first_module::<fedimint_lnv2_client::LightningClientModule>()?;
+        let final_state = lnv2.await_final_send_operation_state(operation_id).await?;
+
+        Ok(final_state)
     }
 }
