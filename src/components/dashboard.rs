@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 use fedimint_core::Amount;
 
-use crate::{load_multimint, FederationSelector};
+use crate::{components::receive::Receive, load_multimint, FederationSelector};
 
 #[component]
 pub fn Dashboard(federation_info: FederationSelector) -> Element {
@@ -15,9 +15,12 @@ pub fn Dashboard(federation_info: FederationSelector) -> Element {
         }
     });
 
+    let mut show_receive = use_signal(|| false);
+
     rsx! {
         div {
             class: "dashboard",
+
             h3 { "Balance" }
             match balance() {
                 Some(bal) => rsx! {
@@ -39,12 +42,27 @@ pub fn Dashboard(federation_info: FederationSelector) -> Element {
                 }
                 button {
                     class: "receive-button",
-                    onclick: |_| {
+                    onclick: move |_| {
                         println!("Receive clicked");
-                        // open receive flow...
+                        show_receive.set(true);
                     },
                     "Receive"
                 }
+            }
+
+            if show_receive() {
+                div {
+                    class: "modal-overlay",
+                    div {
+                        class: "modal-content",
+                        button {
+                            class: "modal-close-button",
+                            onclick: move|_| show_receive.set(false),
+                            "x"
+                         }
+                         Receive { federation_info }
+                     }
+                 }
             }
         }
     }

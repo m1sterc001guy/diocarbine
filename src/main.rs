@@ -95,7 +95,10 @@ pub fn app() -> Element {
                     },
                     None => rsx! {
                         JoinFederationForm {
-                            on_join_success: move |_| load_items()
+                            on_join_success: move |selector| {
+                                load_items();
+                                selected_federation.set(Some(selector));
+                            }
                         }
                     }
                 }

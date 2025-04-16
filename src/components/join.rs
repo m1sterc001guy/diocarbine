@@ -3,10 +3,10 @@ use std::time::Duration;
 use dioxus::prelude::*;
 use fedimint_core::task::sleep;
 
-use crate::load_multimint;
+use crate::{load_multimint, FederationSelector};
 
 #[component]
-pub fn JoinFederationForm(on_join_success: EventHandler<()>) -> Element {
+pub fn JoinFederationForm(on_join_success: EventHandler<FederationSelector>) -> Element {
     let mut input_value = use_signal(|| String::new());
     let error_message = use_signal(|| None::<String>); // Add signal for errors
 
@@ -18,10 +18,10 @@ pub fn JoinFederationForm(on_join_success: EventHandler<()>) -> Element {
                 let mut mm = multimint.write().await;
                 if let Some(mm) = mm.as_mut() {
                     match mm.join_federation(input_value()).await {
-                        Ok(_) => {
+                        Ok(selector) => {
                             input_value.set(String::new());
                             error_message.set(None); // clear errors
-                            on_join_success.call(());
+                            on_join_success.call(selector);
                         }
                         Err(_) => {
                             error_message.set(Some(format!("Could not join federation")));

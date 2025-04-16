@@ -84,7 +84,10 @@ impl Multimint {
     }
 
     // TODO: Implement recovery
-    pub async fn join_federation(&mut self, invite_code: String) -> anyhow::Result<()> {
+    pub async fn join_federation(
+        &mut self,
+        invite_code: String,
+    ) -> anyhow::Result<FederationSelector> {
         let invite_code = InviteCode::from_str(&invite_code)?;
         let federation_id = invite_code.federation_id();
         if self.has_federation(&federation_id).await {
@@ -98,14 +101,15 @@ impl Multimint {
         let client_config = Connector::default()
             .download_from_invite_code(&invite_code)
             .await?;
+        let federation_name = client_config
+            .global
+            .federation_name()
+            .expect("No federation name")
+            .to_owned();
         let federation_config = FederationConfig {
             invite_code,
             connector: Connector::default(),
-            federation_name: client_config
-                .global
-                .federation_name()
-                .expect("No federation name")
-                .to_owned(),
+            federation_name: federation_name.clone(),
         };
 
         self.clients.insert(federation_id, client);
@@ -119,7 +123,10 @@ impl Multimint {
         .await;
         dbtx.commit_tx().await;
 
-        Ok(())
+        Ok(FederationSelector {
+            federation_name,
+            federation_id,
+        })
     }
 
     async fn has_federation(&self, federation_id: &FederationId) -> bool {
