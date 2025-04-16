@@ -6,6 +6,7 @@ use fedimint_api_client::api::net::Connector;
 use fedimint_bip39::{Bip39RootSecretStrategy, Mnemonic};
 use fedimint_client::{
     module_init::ClientModuleInitRegistry, secret::RootSecretStrategy, Client, ClientHandleArc,
+    OperationId,
 };
 use fedimint_core::{
     config::FederationId,
@@ -17,6 +18,7 @@ use fedimint_core::{
 };
 use fedimint_derive_secret::{ChildId, DerivableSecret};
 use fedimint_ln_client::LightningClientInit;
+use fedimint_lnv2_common::Bolt11InvoiceDescription;
 use fedimint_mint_client::MintClientInit;
 use fedimint_rocksdb::RocksDb;
 use fedimint_wallet_client::WalletClientInit;
@@ -204,21 +206,29 @@ impl Multimint {
             .get(federation_id)
             .expect("No federation exists");
         client.get_balance().await
-        /*
-        let mut dbtx = self.db.begin_transaction_nc().await;
-        info!("Getting config...");
-        let config = dbtx
-            .get_value(&FederationConfigKey { id: *federation_id })
-            .await
-            .expect("No available config");
+    }
 
-        info!("Creating federation client...");
+    pub(crate) async fn receive(
+        &self,
+        federation_id: &FederationId,
+        amount: Amount,
+    ) -> anyhow::Result<(String, OperationId)> {
         let client = self
-            .build_client(federation_id, &config.invite_code, config.connector)
-            .await
-            .expect("Could not build client");
-        info!("Retrieving balance...");
-        client.get_balance().await
-        */
+            .clients
+            .get(federation_id)
+            .expect("No federation exists");
+        let lnv2 = client.get_first_module::<fedimint_lnv2_client::LightningClientModule>()?;
+        const DEFAULT_EXPIRY_TIME_SECS: u32 = 86400;
+        let (invoice, operation_id) = lnv2
+            .receive(
+                amount,
+                DEFAULT_EXPIRY_TIME_SECS,
+                Bolt11InvoiceDescription::Direct(String::new()),
+                None,
+                ().into(),
+            )
+            .await?;
+
+        Ok((invoice.to_string(), operation_id))
     }
 }

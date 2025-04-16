@@ -1,6 +1,7 @@
-use dioxus::prelude::*;
+use dioxus::{logger::tracing::info, prelude::*};
+use fedimint_core::Amount;
 
-use crate::FederationSelector;
+use crate::{load_multimint, FederationSelector};
 
 #[component]
 pub fn Receive(federation_info: FederationSelector) -> Element {
@@ -8,16 +9,31 @@ pub fn Receive(federation_info: FederationSelector) -> Element {
     let mut invoice = use_signal(|| None::<String>);
 
     let generate_invoice = move |_| {
-        let amount = amount_msats().trim().parse::<u64>();
-        match amount {
-            Ok(msats) if msats > 0 => {
-                let fake_invoice = format!("lnbc{}msat1p...", msats);
-                invoice.set(Some(fake_invoice));
+        spawn({
+            async move {
+                let amount_msats = amount_msats().trim().parse::<u64>();
+                match amount_msats {
+                    Ok(msats) if msats > 0 => {
+                        let amount = Amount::from_msats(msats);
+                        let multimint = load_multimint().await;
+                        let mm = multimint.read().await;
+                        if let Some(mm) = mm.as_ref() {
+                            match mm.receive(&federation_info.federation_id, amount).await {
+                                Ok((generated_invoice, _operation_id)) => {
+                                    invoice.set(Some(generated_invoice));
+                                }
+                                Err(e) => {
+                                    info!("Receive returning error: {e}");
+                                }
+                            }
+                        }
+                    }
+                    _ => {
+                        invoice.set(Some("Invalid amount".to_string()));
+                    }
+                }
             }
-            _ => {
-                invoice.set(Some("Invalid amount".to_string()));
-            }
-        }
+        });
     };
 
     rsx! {
